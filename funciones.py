@@ -32,3 +32,40 @@ def f_leer_archivo(param_archivo):
 
     return df_data
 
+def f_pip_size(param_ins):
+    """
+    Parameters
+    ---------
+    param_ins
+
+    Returns
+    -------
+    object
+    """
+
+    # transformar a minusculas
+    inst = param_ins.lower()
+
+    # lista de pips por instrumentos
+    pip_inst = {'usdjpy': 100, 'gbpjpy': 100, 'eurjpy':100, 'cadjpy': 100,
+                'chfjpy':100, 'eurusd':10000}
+
+    return  pip_inst[inst]
+
+def f_columnas_datos (param_data):
+    """
+
+    Returns
+    -------
+    object
+    """
+
+    # Convertir columna de 'closetime' y 'opentime' utilizando pd.to_datetime
+    param_data['closetime'] = pd.to_datetime(param_data['closetime'])
+    param_data['opentime'] = pd.to_datetime(param_data['opentime'])
+    # tiempo transcurrido de una operacion
+    param_data['tiempo']= [(param_data.loc[i, 'closetime'] -
+                                 param_data.loc[i, 'opentime']).delta/1e9
+                                for i in range(0, len(param_data['closetime']))]
+
+    return

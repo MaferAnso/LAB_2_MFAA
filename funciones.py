@@ -68,4 +68,4 @@ def f_columnas_datos (param_data):
                                  param_data.loc[i, 'opentime']).delta/1e9
                                 for i in range(0, len(param_data['closetime']))]
 
-    return
+    return param_data

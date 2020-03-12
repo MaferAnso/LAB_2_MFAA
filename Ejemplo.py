@@ -1,14 +1,3 @@
-# -- ------------------------------------------------------------------------------------ -- #
-# -- proyecto: Microestructura y Sistemas de Trading - Laboratorio 2 - Behavioral Finance
-# -- archivo: funciones.py - para procesamiento de datos
-# -- mantiene: Mafer Anso
-# -- repositorio: https://github.com/MaferAnso/LAB_2_MFAA
-# -- ------------------------------------------------------------------------------------ -- #
-
-# -- ---------------------------------------------------------FUNCION: Leer archivo para  -- #
-
-import pandas as pd
-
 def f_leer_archivo(param_archivo):
     """
     Parameters
@@ -67,7 +56,7 @@ def f_pip_size(param_ins):
     return pip_inst[inst]
 
 
-def f_columnas_tiempos(param_data):
+def f_columnas_datos(param_data):
     """
 
     :rtype: object
@@ -82,14 +71,3 @@ def f_columnas_tiempos(param_data):
                             for i in range(0, len(param_data['closetime']))]
 
     return param_data['tiempo']
-
-def f_columnas_pips(datos):
-    datos['pips_acm'][datos.type=='buy'] = [(datos.closeprice[i]-datos.openprice[i])*f_pip_size(datos.symbol[i]) for i in range(len(datos)) if datos[i].type == 'buy']
-    datos['pips_acm'][datos.type=='sell'] = [(datos.openprice[i]-datos.closeprice[i])*f_pip_size(datos.symbol[i]) for i in range(len(datos)) if datos[i].type == 'sell']
-    datos['profit_acm'] = datos['profit'].cumsum()
-    return datos
-
-
-
-
-

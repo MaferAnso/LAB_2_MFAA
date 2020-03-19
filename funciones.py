@@ -84,10 +84,14 @@ def f_columnas_tiempos(param_data):
     return param_data['tiempo']
 
 def f_columnas_pips(datos):
-    datos['pips_acm'][datos.type=='buy'] = [(datos.closeprice[i]-datos.openprice[i])*f_pip_size(datos.symbol[i]) for i in range(len(datos)) if datos[i].type == 'buy']
-    datos['pips_acm'][datos.type=='sell'] = [(datos.openprice[i]-datos.closeprice[i])*f_pip_size(datos.symbol[i]) for i in range(len(datos)) if datos[i].type == 'sell']
+    datos['pips'] = 0
+    
+    datos['pips'][datos.type=='buy'] = [(datos.closeprice[i]-datos.openprice[i])*f_pip_size(datos.symbol[i]) for i in range(len(datos)) if datos[i].type == 'buy']
+    datos['pips'][datos.type=='sell'] = [(datos.openprice[i]-datos.closeprice[i])*f_pip_size(datos.symbol[i]) for i in range(len(datos)) if datos[i].type == 'sell']
+    
     datos['profit_acm'] = datos['profit'].cumsum()
     return datos
+
 
 
 

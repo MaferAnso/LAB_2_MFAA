@@ -7,14 +7,22 @@
 
 
 import funciones as fn
-# datos de entrada pre-formateados
-df_data = fn.f_leer_archivo(param_archivo='archivo_tradeview_1.xlsx')
 
-# Agregar operaciones con columnas de tiempos
-df_data = fn.f_columnas_datos(param_data=df_data)
+# Funcion para leer los datos
+datos = fn.f_leer_archivo(param_archivo='archivos/archivo_tradeview_1.xlsx', sheet_name= 0)
 
+# Agregar columna de  tiempo de la operación
+datos = fn.f_columnas_tiempos(datos)
 
-fn.f_pip_size(param_ins='usdjpy')
+# Agregar columna de número de pips
+datos = fn.f_columnas_pips(datos)
 
+# Agregar columna de capital acumulado ($)
+datos = fn.f_capital_acm(datos)
 
+# Función donde se calculan las estadísticas básicas
+stats = fn.f_basic_stats(datos)
+
+# Estadísticas de desempeño de movimientos
+profit_d = fn.f_profit_diario(datos)
 

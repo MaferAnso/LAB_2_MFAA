@@ -24,7 +24,7 @@ def f_leer_archivo(param_archivo, sheet_name='Sheet 1'):
     Returns
     -------
     :param param_archivo
-    :param sheet_name
+   
     :return
     Debugging
     ---------
@@ -32,7 +32,7 @@ def f_leer_archivo(param_archivo, sheet_name='Sheet 1'):
     """
 
     # Leer archivo
-    df_data = pd.read_excel('archivos/' + param_archivo, sheet_name=sheet_name)
+    df_data = pd.read_excel('archivos/' + param_archivo, sheet_name = 0)
 
     # Convertir en minusculas los titulos de las columnas
     df_data.columns = [list(df_data.columns)[i].lower()
@@ -67,18 +67,23 @@ def f_pip_size(param_ins):
     param_inst
     """
 
-    # encontrar y eliminar _
-    # inst = param_ins.replace('_', '')
-
-    # transformar a minusculas
-    param_ins = param_ins.lower()
+    inst = param_ins.lower()
 
     # lista de pips por instrumento
-    pips_inst = {'eurusd': 10000,'de30usd': 10000,'gbpusd': 10000,'audusd': 10000,'usdcad': 100,'nzdjpy': 100}
-    return pips_inst[param_ins]
+    pips_inst = {'usdjpy': 100, 'gbpjpy': 100, 'eurjpy': 100, 'cadjpy': 100,
+                 'chfjpy': 100,
+                 'eurusd': 10000, 'gbpusd': 10000, 'usdcad': 10000, 'usdmxn': 10000,
+                 'audusd': 10000, 'nzdusd': 10000,
+                 'usdchf': 10000,
+                 'eurgbp': 10000, 'eurchf': 10000, 'eurnzd': 10000, 'euraud': 10000,
+                 'gbpnzd': 10000, 'gbpchf': 10000, 'gbpaud': 10000,
+                 'audnzd': 10000, 'nzdcad': 10000, 'audcad': 10000,
+                 'xauusd': 10, 'xagusd': 10, 'btcusd': 1}
+
+    return pips_inst[inst]
 
 
-# -- ---------------------------------- FUNCION: Calcular el tiempo de una posición abierta -- #
+# -- ---------------------------------- FUNCION: Calcular los segundos transcurridos entre el momento de apertura y el momento de cierre de cada operación -- #
 
 
 def f_columnas_tiempos(param_data):
@@ -95,100 +100,132 @@ def f_columnas_tiempos(param_data):
     param_data
     """
 
-    # convertir columna de 'closetime' y 'opentime' utilizando pd.to_datetime
+   # Convertir las columnas de closetime y opentime con to_datetime
     param_data['closetime'] = pd.to_datetime(param_data['closetime'])
     param_data['opentime'] = pd.to_datetime(param_data['opentime'])
 
-    # tiempo transcurrido de una operacion
+    # Tiempo transcurrido de una operación
     param_data['tiempo'] = [(param_data.loc[i, 'closetime'] - param_data.loc[i, 'opentime']).delta / 1e9
-                            for i in param_data.index]
+                            for i in range(0, len(param_data['closetime']))]
 
-    return param_data['tiempo']
+    
+
+    return param_data
 
 
 # -- ------------------------------------------ FUNCION: Perdida/ganacia experesada en pips -- #
 
-
-def f_columnas_pips(param_data):
+def f_columnas_pips(datos):
     """
     Parameters
     ----------
-    param_data : 
+    datos : pandas.DataFrame : df con información de transacciones ejecutadas en Oanda,
+                                después de haber ejecutado f_columnas_tiempos
     Returns
     -------
-    df_data : pd.DataFrame :
+    param_data : pandas.DataFrame : df modificado
     Debugging
-    ---------
-    param_archivo
+    -------
+    datos = 'f_leer_archivo("archivo_tradeview_1.csv")
+    """
+
+    datos['pips'] = [(datos.closeprice[i]-datos.openprice[i])*f_pip_size(datos.symbol[i]) for i in range(len(datos))]
+    datos['pips'][datos.type=='sell'] *= -1
+    datos['pips_acm'] = datos.pips.cumsum()
+    datos['profit_acm'] = datos['profit'].cumsum()
+    
+    return datos.copy()
+# -- -------------------------------- FUNCION: Una función cuya salida sea un diccionario, ese diccionario de salida debe de tener 2 llaves, 'df_1_tabla' y 'df_2_ranking -- #
+
+def f_estadisticas_ba(datos):
+    """
+    Parameters
+    ----------
+   
+    -------
+ 
+    Debugging
+    -------
     
     """
-    param_data['pips'] = np.zeros(len(param_data['type']))
+    df_1_tabla = pd.DataFrame({
+        'Ops totales': [len(datos['order']), 'Operaciones totales'],
+        'Ganadoras': [len(datos[datos['pips_acm']>=0]), 'Operaciones ganadoras'],
+        'Ganadoras_c': [len(datos[(datos['type']=='buy') & (datos['pips_acm']>=0)]), 'Operaciones ganadoras de compra'],
+        'Ganadoras_s': [len(datos[(datos['type']=='sell') & (datos['pips_acm']>=0)]), 'Operaciones ganadoras de venta'],
+        'Perdedoras': [len(datos[datos['pips_acm'] < 0]), 'Operaciones perdedoras'],
+        'Perdedoras_c': [len(datos[(datos['type']=='buy') & (datos['pips_acm']<0)]), 'Operaciones perdedoras de compra'],
+        'Perdedoras_s': [len(datos[(datos['type']=='sell') & (datos['pips_acm']<0)]), 'Operaciones perdedoras de venta'],
+        'Mediana_profit': [datos['profit'].median(), 'Mediana de rendimeintos de las operaciones'],
+        'Mediana_pips': [datos['pips_acm'].median(), 'Mediana de pips de las operaciones'],
+        'r_efectividad': [len(datos[datos['pips_acm']>=0])/len(datos['order']),
+                          'Ganadoras Totales/Operaciones Totales'],
+        'r_proporcion': [len(datos[datos['pips_acm']>=0])/len(datos[datos['pips_acm'] < 0]),
+                            'Ganadoras Totales/ Perdedoras Totales'],
+        'r_efectividad_c': [len(datos[(datos['type']=='buy') & (datos['pips_acm']>=0)])/len(datos[datos['type']=='buy']),
+                            'Ganadoras Compras/ Operaciones Totales'],
+        'r_efectividad_v': [len(datos[(datos['type']=='sell') & (datos['pips_acm']>=0)])/len(datos[datos['type']=='sell']),
+                            'Ganadoras Ventas/ Operaciones Totales']},index=['Valor', 'Descripcion'])
+
+
+    tmp = pd.DataFrame({i: len(datos[datos.profit>0][datos.symbol == i])/len(datos[datos.symbol == i])
+                      for i in datos.symbol.unique()}, index = ['rank']).T
+    df_2_ranking = tmp.sort_values(by='rank', ascending=False).T
+
+    return  {'df_1' : df_1_tabla.copy(), 'df_2': df_2_ranking.copy()}
+
+# -- -------------------------------- FUNCION: Una función para saber la evolución del capital en la cuenta de trading, inicializala con 5,000 Usd y ve sumando (restando) las ganancias (perdidas) de la columna 'profit_acm'--#
+
+def f_capital_acm(datos):
+    """
+    Parameters
+    ----------
+   
+    Returns
+    -------
     
-    for i in range(0,len(param_data['type'])):
-        
-        if param_data['type'][i] == 'buy':
-            
-            param_data['pips'][i] = (param_data.closeprice[i] - param_data.openprice[i])*f_pip_size(param_ins=param_data['symbol'][i])
-            
-        else:
-            
-            param_data['pips'][i] = (param_data.openprice[i] - param_data.closeprice[i])*f_pip_size(param_ins=param_data['symbol'][i])
+    Debugging
+    -------
     
-    param_data['pips_acm'] = np.zeros(len(param_data['type']))
-    param_data['profit_acm'] = np.zeros(len(param_data['type']))    
-    param_data['pips_acm'][0] = param_data['pips'][0]
-    param_data['profit_acm'][0] = param_data['profit'][0]
-            
-    for i in range(1,len(param_data['pips'])):
-        
-         param_data['pips_acm'][i] = param_data['pips_acm'][i-1] + param_data['pips'][i]
-            param_data['profit_acm'][i] = param_data['profit_acm'][i-1] + param_data['profit'][i]
-        
-    return param_data
+    """
+    datos['capital_acm'] = datos.profit_acm + 5000
+    
+    return datos.copy()
 
 
-def f_estdisticas_ba (param_data):
-
-    def rank_currency(currency,data):
-        data = data.loc[data["symbol"]==currency]
-        proportion = len(data.loc[data["profit"]>0])/len(data)
-        return proportion
+# -- -------------------------------- FUNCION: Una función para saber las fechas en las cuales se hizo traiding--#
 
 
+def f_profit_diario(datos):
+    """
+    Parameters
+    ----------
+  
+    Returns
+    -------
+    
+    -------
+    
+    """
+    datos['ops'] = [i.date() for i in datos.closetime] # cantidad de operaciones cerradas ese dia
+    diario = pd.date_range(datos.ops.min(),datos.ops.max()).date
+    #groups = datos.groupby('ops')
+    #profit = groups['profit'].sum()
+    #profit_d = [profit[i] if i in profit.index else 0 for i in diario]
+    df_profit_diario = pd.DataFrame(profit_diario,index = diario,columns = ['timestamp','capital_acm']).cumsum()+5000
+    
+    return df_profit_diario
 
-    measure_names = ["Ops totales", "Ganadoras","Ganadoras_c","Ganadoras_v","Perdedoras","Perdedoras_c","Perdedoras_v",
-                     "Media(Profit)","Media(pips)","r_efectividad","r_proporción","r_efectividad_c","r_efectividad_v"]
-    df1_tabla = pd.DataFrame()
-    median = lambda data: data.iloc[int((len(data)+1)/2)] if len(data)%2 != 0 else (data.iloc[int(len(data)-1)] +
-                                                                                    data.iloc[int((len(data)+1)/2)])
-
-    measures = {'Ops totales': len(param_data),
-               'Ganadoras':len(param_data.loc[param_data["profit"] > 0]),
-               'Ganadoras_c': len(param_data.loc[(param_data["type"] == "buy") & (param_data["profit"] > 0)]),
-               'Ganadoras_v': len(param_data.loc[(param_data["type"] == 'sell') & (param_data["profit"] > 0)]),
-               'Perdedoras': len(param_data.loc[param_data["profit"] < 0]),
-               'Perdedoras_c': len(param_data.loc[(param_data["type"] == "buy") & (param_data["profit"] < 0)]),
-               'Perdedoras_v': len(param_data.loc[(param_data["type"] == "sell") & (param_data["profit"] < 0)]),
-               'Media(Profit)' : median(param_data["profit"]),
-               'Media(pips)': median(param_data["pips"]),
-               'r_efectividad': len(param_data.loc[param_data["profit"]>0])/len(param_data["profit"]),
-               'r_proporción': len(param_data.loc[param_data["profit"]<0])/len(param_data["profit"]),
-               'r_efectividad_c':len(param_data.loc[(param_data["type"]=="buy") & (param_data["profit"]>0)])/len(
-                                     param_data["profit"]),
-               'r_efectividad_v':len(param_data.loc[(param_data["type"]=="sell") & param_data["profit"]<0])/len(
-                                     param_data["profit"])
-
-                                   }
-
-    traded_currencies = param_data["symbol"].unique()
-    df2_ranking = pd.DataFrame({"Symbol":traded_currencies,"rank":0})
-    df2_ranking["rank"]= (list((rank_currency(i,param_data)) for i in traded_currencies))
-    df2_ranking=df2_ranking.sort_values(by="rank",ascending=False)
-
-    df1_tabla["Medias"] = list([measures[i] for i in measure_names])
-
-    stats_dict = {'df_1_tabla':df1_tabla,
-                  'df_2_ranking': df2_ranking}
-    return stats_dict
+def f_estadisticas_mad(datos):
+     """
+    Parameters
+    ----------
+  
+    Returns
+    -------
+    
+    -------
+    
+    """
 
 

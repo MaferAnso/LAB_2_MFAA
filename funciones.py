@@ -207,17 +207,11 @@ def f_profit_diario(datos):
     -------
     
     """
-    datos['ops'] = [i.date() for i in datos.closetime] # cantidad de operaciones cerradas ese dia
-    diario = pd.date_range(datos.ops.min(),datos.ops.max()).date
-    #groups = datos.groupby('ops')
-    #profit = groups['profit'].sum()
-    #profit_d = [profit[i] if i in profit.index else 0 for i in diario]
-    df_profit_diario = pd.DataFrame(profit_diario,index = diario,columns = ['timestamp','capital_acm']).cumsum()+5000
+    # Syntax: pandas.date_range(start=None, end=None, periods=None, freq=None, tz=None, normalize=False, name=None, closed=None, **kwargs)
     
-    return df_profit_diario
-
-def f_estadisticas_mad(datos):
-     """
+    datos['Timestamp']=pd.date_range(datos.closetime, freq='D')
+ 
+    
     Parameters
     ----------
   

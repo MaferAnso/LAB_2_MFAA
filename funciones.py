@@ -193,7 +193,7 @@ def f_capital_acm(datos):
     return datos.copy()
 
 
-# -- -------------------------------- FUNCION: Una función para saber las fechas en las cuales se hizo traiding--#
+# -- -------------------------------- FUNCION: Una función para saber las ganancias/perdidas diarias--#
 
 
 def f_profit_diario(datos):
@@ -223,3 +223,10 @@ def f_profit_diario(datos):
         df.sort_values('profit_d', ascending=True)
 
     return(df)
+
+
+
+# -- -------------------------------- FUNCION: Una función para saber las fechas en las cuales se hizo traiding--#
+
+def f_estadisticas_mad(datos):
+    

@@ -197,29 +197,29 @@ def f_capital_acm(datos):
 
 
 def f_profit_diario(datos):
-    """
+    
+      """
     Parameters
     ----------
-  
+   
     Returns
     -------
     
+    Debugging
     -------
     
     """
-    # Syntax: pandas.date_range(start=None, end=None, periods=None, freq=None, tz=None, normalize=False, name=None, closed=None, **kwargs)
-    
-    datos['Timestamp']=pd.date_range(datos.closetime, freq='D')
- 
-    
-    Parameters
-    ----------
-  
-    Returns
-    -------
-    
-    -------
-    
-    """
+    date=datos.closetime
+
+    df=pd.DataFrame()
+
+    df['Timestamp']=pd.date_range(start=datos.closetime.iloc[1], end=datos.closetime.iloc[83], freq='D')
+    df['profit_acm_d']=datos['capital_acm']
 
 
+    for i in range(1,len(df)):
+        df.loc[0,'profit_d']=df.loc[0,'profit_acm_d']-5000
+        df.loc[i,'profit_d']= df.loc[i,'profit_acm_d']-df.loc[i-1,'profit_acm_d']
+        df.sort_values('profit_d', ascending=True)
+
+    return(df)

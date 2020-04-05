@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Apr  5 14:17:45 2020
+
+@author: USER
+"""
+
 # -- ------------------------------------------------------------------------------------ -- #
 # -- proyecto: Microestructura y Sistemas de Trading - Laboratorio 2 - Behavioral Finance
 # -- archivo: funciones.py - para procesamiento de datos
@@ -196,11 +203,23 @@ def f_capital_acm(datos):
 # -- -------------------------------- FUNCION: Una función para saber las ganancias/perdidas diarias--#
 
 def f_profit_d(datos):
+    
+      """
+    Parameters
+    ----------
+   
+    Returns
+    -------
+    
+    Debugging
+    -------
+    
+    """
     date=datos.closetime
 
     df=pd.DataFrame()
 
-    df['Timestamp']=pd.date_range(start="2019-08-27", end="2019-09-26", freq='D')
+    df['Timestamp']=pd.date_range(start="2020-", end=datos.closetime.iloc[83], freq='D')
     df['profit_acm_d']=datos['capital_acm']
 
 
@@ -209,7 +228,7 @@ def f_profit_d(datos):
         df.loc[i,'profit_d']= df.loc[i,'profit_acm_d']-df.loc[i-1,'profit_acm_d']
         df.sort_values('profit_d', ascending=True)
 
-    return df
+    return(df)
 
 
 

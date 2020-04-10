@@ -10,9 +10,7 @@
 import numpy as np  
 from datetime import timedelta 
 import pandas as pd                            
-from oandapyV20 import API                               
-import oandapyV20.endpoints.instruments as instruments
-
+from datos import OA_Ak  
 
 
 # -- --------------------------------------------------------- FUNCION: Leer archivo excel -- #
@@ -177,9 +175,9 @@ def f_estadisticas_ba(datos):
                             'Ganadoras Ventas/ Operaciones Totales']},index=['Valor', 'Descripcion'])
 
 
-    tmp = pd.DataFrame({i: len(datos[datos.profit>0][datos.symbol == i])/len(datos[datos.symbol == i])
+    x = pd.DataFrame({i: len(datos[datos.profit>0][datos.symbol == i])/len(datos[datos.symbol == i])
                       for i in datos.symbol.unique()}, index = ['rank']).T
-    df_2_ranking = tmp.sort_values(by='rank', ascending=False).T
+    df_2_ranking = x.sort_values(by='rank', ascending=False)
 
     return  {'df_1' : df_1_tabla.copy(), 'df_2': df_2_ranking.copy()}
 
@@ -237,168 +235,8 @@ def f_profit_d(datos):
     return df
 
 
-# -- --------------------------------------------------------- FUNCION: Descargar precios -- #
-# -- --------------------------------------------------------------------------------------- #
-# -- Descargar precios historicos con OANDA
 
-def f_precios_masivos(p0_fini, p1_ffin, p2_gran, p3_inst, p4_oatk, p5_ginc):
-    """
-    Parameters
-    ----------
-    p0_fini : str : fecha inicial para descargar precios en formato str o pd.to_datetime
-    p1_ffin : str : fecha final para descargar precios en formato str o pd.to_datetime
-    p2_gran : str : M1, M5, M15, M30, H1, H4, H8, segun formato solicitado por OANDAV20 api
-    p3_inst : str : nombre de instrumento, segun formato solicitado por OANDAV20 api
-    p4_oatk : str : OANDAV20 API
-    p5_ginc : int : cantidad de datos historicos por llamada, obligatorio < 5000
-    Returns
-    -------
-    dc_precios : pd.DataFrame : Data Frame con precios TOHLC
-    Debugging
-    ---------
-    p0_fini = pd.to_datetime("2019-01-01 00:00:00").tz_localize('GMT')
-    p1_ffin = pd.to_datetime("2019-12-31 00:00:00").tz_localize('GMT')
-    p2_gran = "M1"
-    p3_inst = "USD_MXN"
-    p4_oatk = Tu token
-    p5_ginc = 4900
-    """
-
-    def f_datetime_range_fx(p0_start, p1_end, p2_inc, p3_delta):
-        """
-        Parameters
-        ----------
-        p0_start : str : fecha inicial
-        p1_end : str : fecha final
-        p2_inc : int : incremento en cantidad de elementos
-        p3_delta : str : intervalo para medir elementos ('minutes', 'hours', 'days')
-        Returns
-        -------
-        ls_result : list : lista con fechas intermedias a frequencia solicitada
-        Debugging
-        ---------
-        p0_start = p0_fini
-        p1_end = p1_ffin
-        p2_inc = p5_ginc
-        p3_delta = 'minutes'
-        """
-
-        ls_result = []
-        nxt = p0_start
-
-        while nxt <= p1_end:
-            ls_result.append(nxt)
-            if p3_delta == 'minutes':
-                nxt += timedelta(minutes=p2_inc)
-            elif p3_delta == 'hours':
-                nxt += timedelta(hours=p2_inc)
-            elif p3_delta == 'days':
-                nxt += timedelta(days=p2_inc)
-
-        return ls_result
-
-    # inicializar api de OANDA
-
-    api = API(access_token=p4_oatk)
-
-    gn = {'S30': 30, 'S10': 10, 'S5': 5, 'M1': 60, 'M5': 60 * 5, 'M15': 60 * 15,
-          'M30': 60 * 30, 'H1': 60 * 60, 'H4': 60 * 60 * 4, 'H8': 60 * 60 * 8,
-          'D': 60 * 60 * 24, 'W': 60 * 60 * 24 * 7, 'M': 60 * 60 * 24 * 7 * 4}
-
-    # -- para el caso donde con 1 peticion se cubran las 2 fechas
-    if int((p1_ffin - p0_fini).total_seconds() / gn[p2_gran]) < 4990:
-
-        # Fecha inicial y fecha final
-        f1 = p0_fini.strftime('%Y-%m-%dT%H:%M:%S')
-        f2 = p1_ffin.strftime('%Y-%m-%dT%H:%M:%S')
-
-        # Parametros pra la peticion de precios
-        params = {"granularity": p2_gran, "price": "M", "dailyAlignment": 16, "from": f1,
-                  "to": f2}
-
-        # Ejecutar la peticion de precios
-        a1_req1 = instruments.InstrumentsCandles(instrument=p3_inst, params=params)
-        a1_hist = api.request(a1_req1)
-
-        # Para debuging
-        # print(f1 + ' y ' + f2)
-        lista = list()
-
-        # Acomodar las llaves
-        for i in range(len(a1_hist['candles']) - 1):
-            lista.append({'TimeStamp': a1_hist['candles'][i]['time'],
-                          'Open': a1_hist['candles'][i]['mid']['o'],
-                          'High': a1_hist['candles'][i]['mid']['h'],
-                          'Low': a1_hist['candles'][i]['mid']['l'],
-                          'Close': a1_hist['candles'][i]['mid']['c']})
-
-        # Acomodar en un data frame
-        r_df_final = pd.DataFrame(lista)
-        r_df_final = r_df_final[['TimeStamp', 'Open', 'High', 'Low', 'Close']]
-        r_df_final['TimeStamp'] = pd.to_datetime(r_df_final['TimeStamp'])
-        r_df_final['Open'] = pd.to_numeric(r_df_final['Open'], errors='coerce')
-        r_df_final['High'] = pd.to_numeric(r_df_final['High'], errors='coerce')
-        r_df_final['Low'] = pd.to_numeric(r_df_final['Low'], errors='coerce')
-        r_df_final['Close'] = pd.to_numeric(r_df_final['Close'], errors='coerce')
-
-        return r_df_final
-
-    # -- para el caso donde se construyen fechas secuenciales
-    else:
-
-        # hacer series de fechas e iteraciones para pedir todos los precios
-        fechas = f_datetime_range_fx(p0_start=p0_fini, p1_end=p1_ffin, p2_inc=p5_ginc,
-                                     p3_delta='minutes')
-
-        # Lista para ir guardando los data frames
-        lista_df = list()
-
-        for n_fecha in range(0, len(fechas) - 1):
-
-            # Fecha inicial y fecha final
-            f1 = fechas[n_fecha].strftime('%Y-%m-%dT%H:%M:%S')
-            f2 = fechas[n_fecha + 1].strftime('%Y-%m-%dT%H:%M:%S')
-
-            # Parametros pra la peticion de precios
-            params = {"granularity": p2_gran, "price": "M", "dailyAlignment": 16, "from": f1,
-                      "to": f2}
-
-            # Ejecutar la peticion de precios
-            a1_req1 = instruments.InstrumentsCandles(instrument=p3_inst, params=params)
-            a1_hist = api.request(a1_req1)
-
-            # Para debuging
-            # print(f1 + ' y ' + f2)
-            lista = list()
-
-            # Acomodar las llaves
-            for i in range(len(a1_hist['candles']) - 1):
-                lista.append({'TimeStamp': a1_hist['candles'][i]['time'],
-                              'Open': a1_hist['candles'][i]['mid']['o'],
-                              'High': a1_hist['candles'][i]['mid']['h'],
-                              'Low': a1_hist['candles'][i]['mid']['l'],
-                              'Close': a1_hist['candles'][i]['mid']['c']})
-
-            # Acomodar en un data frame
-            pd_hist = pd.DataFrame(lista)
-            pd_hist = pd_hist[['TimeStamp', 'Open', 'High', 'Low', 'Close']]
-            pd_hist['TimeStamp'] = pd.to_datetime(pd_hist['TimeStamp'])
-
-            # Ir guardando resultados en una lista
-            lista_df.append(pd_hist)
-
-        # Concatenar todas las listas
-        r_df_final = pd.concat([lista_df[i] for i in range(0, len(lista_df))])
-
-        # resetear index en dataframe resultante porque guarda los indices del dataframe pasado
-        r_df_final = r_df_final.reset_index(drop=True)
-        r_df_final['Open'] = pd.to_numeric(r_df_final['Open'], errors='coerce')
-        r_df_final['High'] = pd.to_numeric(r_df_final['High'], errors='coerce')
-        r_df_final['Low'] = pd.to_numeric(r_df_final['Low'], errors='coerce')
-        r_df_final['Close'] = pd.to_numeric(r_df_final['Close'], errors='coerce')
-
-        return r_df_final
-
+   
 # -- -------------------------------- FUNCION: Una función para saber los diferentes ratios diarios de la base de datos--#
 
 def f_estadisticas_mad(datos):
@@ -464,23 +302,35 @@ def f_estadisticas_mad(datos):
     
     #Calcular el information Ratio
     
-    #Descarga de precios masivos en OANDA
+    #Descargar precios masivos (Profesor, utilice una función que vi en simulacion matematica, genere mi token en OANDA varias veces pero no me dejo descargar los precios, decia que no tenia acceso suficiente...... :(    )
     
-    oa_token = 'b' + 'a3da768d923e90da18ca36c7b736b3a-af1ffe52629d9751a4899a115062e16' + 'c'
-    oa_in = "SPX500_USD"  # Instrumento
-    oa_gn = "D"  # Granularidad de velas
-    fini = pd.to_datetime(param_data['dates'].min()).tz_localize('GMT')  # Fecha inicial
-    ffin = pd.to_datetime(param_data['dates'].max()).tz_localize('GMT')  # Fecha final
+    def get_historical_closes(ticker, start_date, end_date=None):
+    closes = web.YahooDailyReader(ticker, start_date, end_date).read()
+    #closes = web.YahooDailyReader(symbols=ticker, start=start_date, end=end_date).read()
+    #closes.set_axis(closes.loc['date',:,ticker[0]].values, axis=1, inplace=True)
+    #closes = closes.loc['adjclose'].sort_index().dropna()
+    #closes = pd.DataFrame(np.array(closes.as_matrix(), dtype=np.float64), columns=ticker, index=closes.index)
+    #closes.index.name = 'Date'
+    return pd.DataFrame(closes.loc[:, 'Adj Close'])
+    #return closes
+    
+    # Definimos los instrumentos que vamos a descargar. 
+    ticker = 'SPY'
+    # Queremos los datos desde 27/08/2019 hasta 26/09/2019.
+    start_date = '2019-08-27'
+    end_date = '2019-09-26'
+    # Usamos la función anterior. Si, así de fácil...
+    closes = get_historical_closes(ticker, start_date, end_date)
+    #Sacamos los rendimientos logaritmicos diarios
+    r = np.log(closes/closes.shift(1)).dropna()
 
-    df_pe = f_precios_masivos(p0_fini=fini, p1_ffin=ffin, p2_gran=oa_gn,
-                              p3_inst=oa_in, p4_oatk=oa_token, p5_ginc=4900)
     
     #Rendimientos logaritmicos de SPX500
     rend_close = pd.DataFrame(float(i) for i in df_pe['Close'])
     rend_sp = np.log(rend_close / rend_close.shift(1)).iloc[1:]
     rlog_sp = rend_sp.mean()
     
-
+    
     
     mad_data = {'Metrica': ['Sharpe', 'Sortino_c', 'Sortino_v', 'Drawdown_capi', 'Drawup_capi', 'Information_r'],
                 'Valor': [sharpe_ratio, sortino_c, sortino_v, drawdown_capi, drawup_capi, info_ratio],

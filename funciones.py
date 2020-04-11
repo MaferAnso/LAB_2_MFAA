@@ -10,8 +10,7 @@
 import numpy as np  
 from datetime import timedelta 
 import pandas as pd                            
-from datos import OA_Ak  
-
+import pandas_datareader.data as web
 
 # -- --------------------------------------------------------- FUNCION: Leer archivo excel -- #
 
@@ -253,6 +252,7 @@ def f_estadisticas_mad(datos):
     -------
     
     """
+    
     #Sharpe Ratio
     pr= datos['capital_acm']
     rp=np.diff(np.log(pr))
@@ -261,6 +261,7 @@ def f_estadisticas_mad(datos):
     sharpe_ratio=(np.mean(rp-rf))/np.std(rp)
     
     # Sortino_c (Compras)
+    mar=0.3 / 300
     profit_c =f_profit_d(datos[datos['type'] == 'buy'])
     rp_c = np.diff(np.log(profit_c['profit_acm_d']))
     x = []
@@ -282,6 +283,7 @@ def f_estadisticas_mad(datos):
     sortino_v = round(np.mean(rp_v - mar) / std_sortino_v,4)
     
     #Calcular el drawdown capital
+    df = f_profit_d(datos)
     
     valmin = df.profit_acm_d.min()
     rend = df.loc[df['profit_acm_d'] == df.profit_acm_d.min()]
@@ -295,7 +297,7 @@ def f_estadisticas_mad(datos):
     #Calcular el drawup capital
     val2 = df.loc[index[0]:]
     vmax2 = val2.max()
-    vmin2 = val_2.min()
+    vmin2 = val2.min()
     vt2 = vmax2['profit_acm_d'] - valmin
     drawup_cap = list([vmin2['Timestamp'], vmax2['Timestamp'], vt2])
     
@@ -305,13 +307,13 @@ def f_estadisticas_mad(datos):
     #Descargar precios masivos (Profesor, utilice una función que vi en simulacion matematica, genere mi token en OANDA varias veces pero no me dejo descargar los precios, decia que no tenia acceso suficiente...... :(    )
     
     def get_historical_closes(ticker, start_date, end_date=None):
-    closes = web.YahooDailyReader(ticker, start_date, end_date).read()
+        closes = web.YahooDailyReader(ticker, start_date, end_date).read()
     #closes = web.YahooDailyReader(symbols=ticker, start=start_date, end=end_date).read()
     #closes.set_axis(closes.loc['date',:,ticker[0]].values, axis=1, inplace=True)
     #closes = closes.loc['adjclose'].sort_index().dropna()
     #closes = pd.DataFrame(np.array(closes.as_matrix(), dtype=np.float64), columns=ticker, index=closes.index)
     #closes.index.name = 'Date'
-    return pd.DataFrame(closes.loc[:, 'Adj Close'])
+        return pd.DataFrame(closes.loc[:, 'Adj Close'])
     #return closes
     
     # Definimos los instrumentos que vamos a descargar. 
@@ -323,17 +325,25 @@ def f_estadisticas_mad(datos):
     closes = get_historical_closes(ticker, start_date, end_date)
     #Sacamos los rendimientos logaritmicos diarios
     r = np.log(closes/closes.shift(1)).dropna()
+    r_mean=r.mean()
+    pr= datos['capital_acm']
+    rp=np.diff(np.log(pr))
+    rp_mean=rp.mean()
+    for i in range(len(rp)):
+        bench = rp[i] - r
+    bench= bench.mean()
+    
+
+    inf_ratio = (rp_mean-r_mean)/bench
+    
 
     
-    #Rendimientos logaritmicos de SPX500
-    rend_close = pd.DataFrame(float(i) for i in df_pe['Close'])
-    rend_sp = np.log(rend_close / rend_close.shift(1)).iloc[1:]
-    rlog_sp = rend_sp.mean()
     
     
     
-    mad_data = {'Metrica': ['Sharpe', 'Sortino_c', 'Sortino_v', 'Drawdown_capi', 'Drawup_capi', 'Information_r'],
-                'Valor': [sharpe_ratio, sortino_c, sortino_v, drawdown_capi, drawup_capi, info_ratio],
+    
+    mad_data = {'Metrica': ['Sharpe', 'Sortino_c', 'Sortino_v', 'Drawdown_cap', 'Drawup_cap', 'Information_r'],
+                'Valor': [sharpe_ratio, sortino_c, sortino_v, drawdown_cap, drawup_cap, inf_ratio],
                 'Descripción': ['Sharpe Ratio', 'Sortino Ratio para posiciones de compra',
                                 'Sortino Ratio para posiciones de venta', 'DrawDown de Capital', 'DrawUp de Capital',
                                 'Information Ratio']}
@@ -342,7 +352,7 @@ def f_estadisticas_mad(datos):
     
 # -- -------------------------------- FUNCION: Una función para sesgos cognitivos---------------------------------------#
 
-#def f_be_de(datos):
+def f_be_de(datos):
     
     # Principio 1: Punto de referencia
     #Proporcion del capital ganado y capital perdido vs capital
@@ -350,7 +360,10 @@ def f_estadisticas_mad(datos):
     #Calcular el ratio (capital_ganado/capital_acm)*100 y (capital_perdido/capital_acm)*100 para cada operación
     #Nota, hacerlo con una iteración [i]
     
-#    datos['ratio_capital_acm'] = 0
-#    datos['ratio_capital_acm'] = [(datos['profit'][i] / 5000) * 100 if i == 0 else
-#                                       (datos['profit'][i] /datos['capital_acm'][i - 1]) * 100
-#                                       for i in range(len(datos))]
+    datos['ratio_capital_acm'] = 0
+    datos['ratio_capital_acm'] = [(datos['profit'][i] / 5000) * 100 if i == 0 else
+                                  (datos['profit'][i] /datos['capital_acm'][i - 1]) * 100
+                                       for i in range(len(datos))]
+
+    
+    

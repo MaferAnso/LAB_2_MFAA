@@ -113,7 +113,7 @@ def f_columnas_tiempos(param_data):
     return param_data
 
 
-# -- ------------------------------------------ FUNCION: Perdida/ganacia experesada en pips -- #
+# -- ------------------------------------------ FUNCION: Perdida/ganacia experesada en pips -- # #Profesor, para esta parte Oscar me ayudo en clase, antes de la contingencia.
 
 def f_columnas_pips(datos):
     """
@@ -154,6 +154,7 @@ def f_estadisticas_ba(datos):
     
     """
     #Creacion de diccionario con dos llaves
+    # Para la creacion de la primera tabla es necesario contar el número total de operaciones que se hicieron en el rango de fechas utilizando la tabla de datos antes creadas, luego, todas aquellas que tienen pips acumulados mayores a 0 son ganadoras, con type, clasificamos las de compra y las de ventas, lo mismo con las perdidas, los pips acumulados menores a 0 son predidas y se clasifican entre compra y venta. Se usa la funcion median para sacar la mediana de los profits y los pips acumulados, para la efectividad se deben de dividir las ganancias totales entre las operaciones totales, para la proporcion debe de dividirse los pips acumulados mayor a cero y los menores a cero luego ganadoras totales entre perdedoras totales, ganadoras de compras entre operaciones totales y ganadoras ventas entre opeoraciones totales.
     df_1_tabla = pd.DataFrame({
         'Ops totales': [len(datos['order']), 'Operaciones totales'],
         'Ganadoras': [len(datos[datos['pips_acm']>=0]), 'Operaciones ganadoras'],
@@ -172,7 +173,7 @@ def f_estadisticas_ba(datos):
                             'Ganadoras Compras/ Operaciones Totales'],
         'r_efectividad_v': [len(datos[(datos['type']=='sell') & (datos['pips_acm']>=0)])/len(datos[datos['type']=='sell']),
                             'Ganadoras Ventas/ Operaciones Totales']},index=['Valor', 'Descripcion'])
-
+#para la tabla dos de ranking fue necesario sacar los datos del profit mayores a cero y dividirlos, además de acomodarlos de forma ascendete 
 
     x = pd.DataFrame({i: len(datos[datos.profit>0][datos.symbol == i])/len(datos[datos.symbol == i])
                       for i in datos.symbol.unique()}, index = ['rank']).T
